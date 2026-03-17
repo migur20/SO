@@ -1,2 +1,2 @@
 Ex3.
-{ time ./vector-seq 1000000000; } > times.txt 2>> times.txt
+{ ./time ./vector-seq 1000000000; } > times.txt 2>> times.txt
