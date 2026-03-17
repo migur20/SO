@@ -8,9 +8,11 @@ int main(void) {
   // Get the start time
   clock_gettime(CLOCK_MONOTONIC, &t_start);
   // code to be timed goes here
-  ...
-      // Get the end time
-      clock_gettime(CLOCK_MONOTONIC, &t_end);
+	
+	//TODO ...
+	
+  // Get the end time
+  clock_gettime(CLOCK_MONOTONIC, &t_end);
   // Calculate the elapsed time in seconds
   double elapsed_time = (t_end.tv_sec - t_start.tv_sec) +
                         (t_end.tv_nsec - t_start.tv_nsec) * 1e-9;

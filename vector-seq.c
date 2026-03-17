@@ -4,7 +4,6 @@
 
 #define MAX_VALUES ((unsigned long)6e8)
 
-
 void random_init()
 {
     // Initialize the random number generator with the current time as the seed, 
