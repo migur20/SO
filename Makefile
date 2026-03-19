@@ -1,4 +1,4 @@
-BINS = count_words 
+BINS = count_words time
 
 CC       = gcc
 CFLAGS  += -Wall    # warnings básicos
@@ -18,6 +18,9 @@ count_words: count_words.o
 		
 #vector-seq: vector-seq.o
 #vector-seq.o: vector-seq.c
+
+time: time.o time.c
+	$(CC) $(CFLAGS) -o time time.o
 	
 #ex3: ex3.o
 #ex3.o: ex3.c

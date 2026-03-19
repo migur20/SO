@@ -1,11 +1,6 @@
-Creating a vector of 1000000000 (1000.00 MB; 1.00 GB) values
-This will require approximately 2000.00 MB (2.00 GB) of memory
+Creating a vector of 600000000 (600.00 MB; 0.60 GB) values
+This will require approximately 1200.00 MB (1.20 GB) of memory
 smaller is -32768
 bigger  is 32767
-The sum is 303681303
-
-real	0m9.598s
-user	0m9.202s
-sys	0m0.341s
-
-
+The sum is 343537522
+Total elapsed time =  6.051303s (6051303.444000us)

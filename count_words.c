@@ -57,17 +57,13 @@ int main(int argc, char *argv[]) {
     if (waitpid(pid, &status, 0) == -1) // o pai espera o processo filho terminar. Evita processos zombie
         fatal_system_error("Erro no waitpid");
 
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) { //verifica se o wc terminou corretamente
-        fprintf(stderr, "Erro: o comando wc terminou com erro.\n");
-        return EXIT_FAILURE;
-    }
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) //verifica se o wc terminou corretamente
+        fatal_system_error("Erro: o comando wc terminou com erro.\n");
 
     long palavras;
 
-    if (sscanf(buffer, "%ld", &palavras) != 1) {
-        fprintf(stderr, "Erro: nao foi possivel obter o numero de palavras.\n");
-        return EXIT_FAILURE;
-    }
+    if (sscanf(buffer, "%ld", &palavras) != 1)
+        fatal_system_error("Erro: nao foi possivel obter o numero de palavras.\n");
 
     printf("%ld\n", palavras);
 

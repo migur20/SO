@@ -2,9 +2,9 @@
 #include <sys/wait.h>
 #define _XOPEN_SOURCE 600 // for clock_gettime
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <wait.h>
 
 void fatal_system_error(const char *errorMsg) {
@@ -20,18 +20,24 @@ int main(void) {
   // code to be timed goes here
 
   pid_t retfork = fork();
-  if (retfork < 0) {
-		fatal_system_error("time, error forking");
+  if (retfork < 0)
+    fatal_system_error("time, error forking");
+
+  if (retfork == 0) {
+    // Child
+    execl("./vector-seq", NULL, "10000000000000");
+    fatal_system_error("time, error executing");
+    exit(EXIT_FAILURE);
   }
 
-	if(retfork == 0){
-		//Child
-		execl("./vector-seq", NULL);
-		fatal_system_error("time, error executing");
-		exit(EXIT_FAILURE);
-	}
+  int status;
+  // o pai espera o processo filho terminar. Evita processos zombie
+  if (waitpid(retfork, &status, 0) == -1)
+    fatal_system_error("Erro no waitpid");
 
-	waitpid(retfork, NULL, 0);
+  // verifica se o ./vector-seq terminou corretamente
+  if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+    fatal_system_error("Erro: o comando ./vector-seq terminou com erro.\n");
 
   // Get the end time
   clock_gettime(CLOCK_MONOTONIC, &t_end);
