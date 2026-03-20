@@ -1,9 +1,10 @@
-BINS = ex1 ex3 count_words vector-seq time
+BINS = ex1 ex3 count_words vector-seq vector-seq-processes
 
 CC = gcc
 CFLAGS += -Wall
 CFLAGS += -Wextra
 CFLAGS += -Werror
+CFLAGS += -g       #debug flags
 
 all: $(BINS)
 	
@@ -19,8 +20,8 @@ count_words.o: count_words.c
 vector-seq: vector-seq.o
 vector-seq.o: vector-seq.c
 
-time: time.o
-time.o: time.c
+vector-seq-processes: vector-seq-processes.o
+vector-seq-processes.o: vector-seq-processes.c
 
 clean:
 	$(RM) $(BINS) *.o
