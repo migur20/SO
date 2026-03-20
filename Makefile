@@ -1,26 +1,26 @@
-BINS = count_words 
+BINS = ex1 ex3 count_words vector-seq time
 
-CC       = gcc
-CFLAGS  += -Wall    # warnings básicos
-CFLAGS  += -Wextra  # warnings extra
-CFLAGS  += -Werror  # transforma warnings em erros
+CC = gcc
+CFLAGS += -Wall
+CFLAGS += -Wextra
+CFLAGS += -Werror
 
 all: $(BINS)
-
-#ex1: ex1.o
-#ex1.o: ex1.c
 	
-ex2: ex2.o
-ex2.o: ex2.c
+ex1: ex1.o
+ex1.o: ex1.c
+
+ex3: ex3.o
+ex3.o: ex3.c
 
 count_words: count_words.o
-	$(CC) $(CFLAGS) -o count_words count_words.o
-		
-#vector-seq: vector-seq.o
-#vector-seq.o: vector-seq.c
-	
-#ex3: ex3.o
-#ex3.o: ex3.c
+count_words.o: count_words.c
+
+vector-seq: vector-seq.o
+vector-seq.o: vector-seq.c
+
+time: time.o
+time.o: time.c
 
 clean:
 	$(RM) $(BINS) *.o
