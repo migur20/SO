@@ -1,6 +1,38 @@
-Creating a vector of 600000000 (600.00 MB; 0.60 GB) values
-This will require approximately 1200.00 MB (1.20 GB) of memory
+---------------vector-seq-processes(3 processes)------------
+PARENT:Creating a vector of 1000000000 (1000.00 MB; 1.00 GB) values
+PARENT:This will require approximately 2000.00 MB (2.00 GB) of memory
+CHILD[145707]:smaller is -32768
+CHILD[145707]:bigger  is 32767
+CHILD[145707]:The sum is 176873337
+CHILD[145708]:smaller is -32768
+CHILD[145708]:bigger  is 32767
+CHILD[145708]:The sum is 67375877
+CHILD[145709]:smaller is -32768
+CHILD[145709]:bigger  is 32767
+CHILD[145709]:The sum is 59432089
+PARENT:Waiting for childs to finnish
+PARENT:smaller is -32768
+PARENT:bigger  is 32767
+PARENT:The sum is 303681303
+Total elapsed time =  8.102738s (8102737.714000us)
+---------------vector-seq-processes(2 processes)------------
+PARENT:Creating a vector of 1000000000 (1000.00 MB; 1.00 GB) values
+PARENT:This will require approximately 2000.00 MB (2.00 GB) of memory
+CHILD[146708]:smaller is -32768
+CHILD[146708]:bigger  is 32767
+CHILD[146708]:The sum is 267655708
+CHILD[146709]:smaller is -32768
+CHILD[146709]:bigger  is 32767
+CHILD[146709]:The sum is 36025595
+PARENT:Waiting for childs to finnish
+PARENT:smaller is -32768
+PARENT:bigger  is 32767
+PARENT:The sum is 303681303
+Total elapsed time =  8.369234s (8369234.144000us)
+---------------------------vector-seq-----------------------
+Creating a vector of 1000000000 (1000.00 MB; 1.00 GB) values
+This will require approximately 2000.00 MB (2.00 GB) of memory
 smaller is -32768
 bigger  is 32767
-The sum is 343537522
-Total elapsed time =  6.051303s (6051303.444000us)
+The sum is 303681303
+Total elapsed time = 14.641102s (14641102.489000us)

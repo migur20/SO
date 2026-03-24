@@ -68,7 +68,7 @@ int main (int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    // vector_init_short(values, max);
+    //vector_init_short(values, max);
     vector_random_init_short(values, max);
 
     long sum     = values[0];

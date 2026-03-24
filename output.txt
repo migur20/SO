@@ -1,0 +1,124 @@
+Parent forking...
+CHILD[132663]:Startingstart_idx[0]:0
+pid:132663, j:1
+pid:132663, j:2
+pid:132663, j:3
+pid:132663, j:4
+pid:132663, j:5
+pid:132663, j:6
+pid:132663, j:7
+pid:132663, j:8
+pid:132663, j:9
+pid:132663, j:10
+pid:132663, j:11
+pid:132663, j:12
+pid:132663, j:13
+pid:132663, j:14
+pid:132663, j:15
+pid:132663, j:16
+pid:132663, j:17
+pid:132663, j:18
+pid:132663, j:19
+pid:132663, j:20
+pid:132663, j:21
+pid:132663, j:22
+pid:132663, j:23
+pid:132663, j:24
+pid:132663, j:25
+pid:132663, j:26
+pid:132663, j:27
+pid:132663, j:28
+pid:132663, j:29
+pid:132663, j:30
+pid:132663, j:31
+pid:132663, j:32
+CHILD[132663]:smaller is 1
+CHILD[132663]:bigger  is 33
+CHILD[132663]:The sum is 562
+Parent forking...
+Parent forking...
+CHILD[132664]:Startingstart_idx[1]:33
+pid:132664, j:33
+pid:132664, j:34
+pid:132664, j:35
+pid:132664, j:36
+pid:132664, j:37
+pid:132664, j:38
+pid:132664, j:39
+pid:132664, j:40
+pid:132664, j:41
+pid:132664, j:42
+pid:132664, j:43
+pid:132664, j:44
+pid:132664, j:45
+pid:132664, j:46
+pid:132664, j:47
+pid:132664, j:48
+pid:132664, j:49
+pid:132664, j:50
+pid:132664, j:51
+pid:132664, j:52
+pid:132664, j:53
+pid:132664, j:54
+pid:132664, j:55
+pid:132664, j:56
+pid:132664, j:57
+pid:132664, j:58
+pid:132664, j:59
+pid:132664, j:60
+pid:132664, j:61
+pid:132664, j:62
+pid:132664, j:63
+pid:132664, j:64
+pid:132664, j:65
+CHILD[132664]:smaller is 1
+CHILD[132664]:bigger  is 66
+CHILD[132664]:The sum is 1651
+Parent forking...
+Parent forking...
+Parent forking...
+CHILD[132665]:Startingstart_idx[2]:66
+pid:132665, j:66
+pid:132665, j:67
+pid:132665, j:68
+pid:132665, j:69
+pid:132665, j:70
+pid:132665, j:71
+pid:132665, j:72
+pid:132665, j:73
+pid:132665, j:74
+pid:132665, j:75
+pid:132665, j:76
+pid:132665, j:77
+pid:132665, j:78
+pid:132665, j:79
+pid:132665, j:80
+pid:132665, j:81
+pid:132665, j:82
+pid:132665, j:83
+pid:132665, j:84
+pid:132665, j:85
+pid:132665, j:86
+pid:132665, j:87
+pid:132665, j:88
+pid:132665, j:89
+pid:132665, j:90
+pid:132665, j:91
+pid:132665, j:92
+pid:132665, j:93
+pid:132665, j:94
+pid:132665, j:95
+pid:132665, j:96
+pid:132665, j:97
+pid:132665, j:98
+pid:132665, j:99
+CHILD[132665]:smaller is 1
+CHILD[132665]:bigger  is 100
+CHILD[132665]:The sum is 2840
+Parent forking...
+Parent forking...
+Parent forking...
+PARENT:Waiting for childs to finnish
+PARENT:smaller is 0
+PARENT:bigger  is 100
+PARENT:The sum is 5053

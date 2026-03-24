@@ -42,6 +42,7 @@ int main() {
     // Processo pai
     printf("[PARENT] PID=%d criou filhos %d e %d\n", getpid(), retfork1, retfork2); // Imprime os PIDs dos filhos
     printf("[PARENT] Esperando filhos terminarem...\n");
+		fflush(stdout);
 
     // Espera pelo primeiro filho
     waitpid(retfork1, &status, 0); 
