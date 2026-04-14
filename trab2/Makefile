@@ -1,4 +1,4 @@
-BINS = vector-seq-threads
+BINS = vector-seq-threads time
 
 CC = gcc
 CFLAGS += -Wall
@@ -10,6 +10,9 @@ all: $(BINS)
 
 vector-seq-threads: vector-seq-threads.o
 vector-seq-threads.o: vector-seq-threads.c
+
+time: time.o
+time.o: time.c
 
 clean:
 	$(RM) $(BINS) *.o

@@ -1,14 +1,40 @@
+#include <errno.h>
 #include <error.h>
 #include <limits.h>
+#include <pthread.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
+
+typedef struct {
+  long sum;
+  int bigger;
+  int smaller;
+} ThreadReturn;
+
+typedef struct {
+  int id;
+  short *v; // pointer posicao inicial
+  unsigned long dim;
+  ThreadReturn *ret;
+} ThreadArgs;
 
 void fatal_system_error(const char *errorMsg) {
   perror(errorMsg);
   exit(EXIT_FAILURE);
+}
+
+void fatal_pthread_error(const char *errorMsg, int retvalue) {
+  errno = retvalue;
+  perror(errorMsg);
+  exit(EXIT_FAILURE);
+}
+
+void check_pthread_error(int retvalue, const char *msg) {
+  if (retvalue != 0)
+    fatal_pthread_error(msg, retvalue);
 }
 
 // :declarations
@@ -17,124 +43,74 @@ long random_get_value(long min, long max);
 short *vector_create_short(unsigned long dim);
 void vector_init_short(short values[], unsigned long dim);
 void vector_random_init_short(short values[], unsigned long dim);
+void *thread_func(void *_args);
 
 int main(int argc, char *argv[]) {
   if (argc < 3) {
     printf("Not enough arguments\n");
-    printf("Usage: ./vector-seq-processes <number_of_data> "
-           "<number_of_processes>\n");
+    printf("Usage: ./vector-seq-threads <number_of_data> "
+           "<number_of_threads>\n");
     exit(EXIT_FAILURE);
   }
 
-  // Usage: ./vector-seq-processes <number_of_data> <number_of_processes>
-  unsigned long max = atol(argv[1]);
-  int nProcesses = atoi(argv[2]);
+  int nthreads = 1;
+  unsigned long dim;
+  short *values;
+
+  // Usage: ./vector-seq-threads <number_of_data> <number_of_threads>
+  dim = atol(argv[1]);
+  nthreads = atoi(argv[2]);
 
   random_init();
 
-  short *values = NULL;
-  values = vector_create_short(max);
+  values = NULL;
+  values = vector_create_short(dim);
   if (values == NULL) {
     char buf[128];
-    sprintf(buf, "Failed to allocate memory for %lu values\n", max);
+    sprintf(buf, "Failed to allocate memory for %lu values\n", dim);
     fatal_system_error(buf);
-    exit(EXIT_FAILURE);
   }
-  // vector_init_short(values, max);
-  vector_random_init_short(values, max);
 
-  printf("PARENT:Creating a vector of %lu (%.2f MB; %.2f GB) values\n", max,
-         max / 1e6, max / 1e9);
-  printf("PARENT:This will require approximately %.2f MB (%.2f GB) of "
+  // vector_init_short(values, dim);
+  vector_random_init_short(values, dim);
+
+  printf("[MAIN]:Creating a vector of %lu (%.2f MB; %.2f GB) values\n", dim,
+         dim / 1e6, dim / 1e9);
+  printf("[MAIN]:This will require approximately %.2f MB (%.2f GB) of "
          "memory\n",
-         max * sizeof(*values) / 1e6, max * sizeof(*values) / 1e9);
+         dim * sizeof(*values) / 1e6, dim * sizeof(*values) / 1e9);
 
-  int resto = max % nProcesses;
-  max = max / nProcesses;
+  int resto = dim % nthreads;
+  dim = dim / nthreads;
 
-  int start_idx[nProcesses];
-  for (int i = 0; i < nProcesses; i++) {
-    start_idx[i] = i * max;
-  }
-
-  int pipe_fd[2];
-  if (pipe(pipe_fd) == -1) {
-    fatal_system_error("error creating pipe");
-  }
-
-  for (int i = 0; i < nProcesses; i++) {
-    pid_t retfork = fork();
-    if (retfork < 0)
-      fatal_system_error("vector-seq-processes error forking");
-
-    if (retfork == 0) {
-      // :child
-      if (i == nProcesses - 1) {
-        max += resto;
-      }
-
-      long sum = 0;
-      int bigger = values[start_idx[i]];
-      int smaller = values[start_idx[i]];
-      for (unsigned long j = start_idx[i]; j < start_idx[i] + max; ++j) {
-        sum += values[j];
-        if (values[j] > bigger)
-          bigger = values[j];
-        if (values[j] < smaller)
-          smaller = values[j];
-      }
-      printf("CHILD[%d]:smaller is %d\n", getpid(), smaller);
-      printf("CHILD[%d]:bigger  is %d\n", getpid(), bigger);
-      printf("CHILD[%d]:The sum is %ld\n", getpid(), sum);
-
-      // child doesnt need to read from the pipe
-      close(pipe_fd[0]);
-
-      char buf[128];
-      sprintf(buf, "%ld,%d,%d", sum, bigger, smaller); // write on buffer
-      write(pipe_fd[1], buf, sizeof(buf)); // write buffer to the pipe
-
-      close(pipe_fd[1]);
-
-      exit(EXIT_SUCCESS);
-    }
-  }
-  // :parent
-
-  // parent doesnt need to write on the pipe
-  close(pipe_fd[1]);
-
-  printf("PARENT:Waiting for childs to finnish\n");
-
-  while (wait(NULL) > 0) {
-    ;
+  ThreadArgs args[nthreads];
+  pthread_t th[nthreads];
+  for (int i = 0; i < nthreads; i++) {
+    args[i].v = &values[i * dim];
+    args[i].dim = (i == nthreads - 1) ? dim + resto : dim;
+    args[i].id = i + 1;
+    check_pthread_error(pthread_create(&th[i], NULL, thread_func, &args[i]),
+                        "Error creating thread");
   }
 
   long sum = 0;
-  int bigger = 0;
-  int smaller = 0;
+  int bigger = values[0];
+  int smaller = values[0];
 
-  char buf[128];
-  int bytes_read;
-  while ((bytes_read = read(pipe_fd[0], buf, 128)) != 0) {
-    if (bytes_read < 0) {
-      fatal_system_error("Error reading from pipe");
-    }
-    long s;
-    int big;
-    int small;
-    sscanf(buf, "%ld,%d,%d", &s, &big, &small);
-    sum += s;
-    if (bigger < big)
-      bigger = big;
-    if (smaller > small)
-      smaller = small;
+  for (int i = 0; i < nthreads; i++) {
+    pthread_join(th[i], NULL);
+    ThreadReturn *ret = args[i].ret;
+    sum += ret->sum;
+    if (ret->smaller < smaller)
+      smaller = ret->smaller;
+    if (ret->bigger > bigger)
+      bigger = ret->bigger;
+    free(ret);
   }
-  close(pipe_fd[0]);
 
-  printf("PARENT:smaller is %d\n", smaller);
-  printf("PARENT:bigger  is %d\n", bigger);
-  printf("PARENT:The sum is %ld\n", sum);
+  printf("[MAIN]:smaller is %d\n", smaller);
+  printf("[MAIN]:bigger  is %d\n", bigger);
+  printf("[MAIN]:The sum is %ld\n", sum);
 
   free(values);
 
@@ -174,4 +150,26 @@ void vector_random_init_short(short values[], unsigned long dim) {
   for (unsigned long i = 0; i < dim; ++i) {
     values[i] = random_get_value(SHRT_MIN, SHRT_MAX);
   }
+}
+
+void *thread_func(void *_args) {
+  ThreadArgs *args = (ThreadArgs *)_args;
+  ThreadReturn *ret = calloc(1, sizeof(*ret)); // inicializa a 0
+  *ret = (ThreadReturn){
+      .sum = 0,
+      .bigger = args->v[0],
+      .smaller = args->v[0],
+  };
+  for (unsigned long j = 0; j < args->dim; ++j) {
+    ret->sum += args->v[j];
+    if (args->v[j] > ret->bigger)
+      ret->bigger = args->v[j];
+    if (args->v[j] < ret->smaller)
+      ret->smaller = args->v[j];
+  }
+  printf("[THREAD[%d]]:smaller is %d\n", args->id, ret->smaller);
+  printf("[THREAD[%d]]:bigger  is %d\n", args->id, ret->bigger);
+  printf("[THREAD[%d]]:The sum is %ld\n", args->id, ret->sum);
+  args->ret = ret;
+  return ret;
 }
