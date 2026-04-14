@@ -8,7 +8,6 @@ int main() {
     pid_t retfork1, retfork2; 
     int status;
 
-
     // Primeiro filho: /bin/date
     retfork1 = fork();
     if (retfork1 < 0) { 
@@ -17,7 +16,6 @@ int main() {
     }
 
     if (retfork1 == 0) {
-
         printf("[CHILD 1] PID=%d; PPID=%d - executando /bin/date\n", getpid(), getppid()); // Imprime o PID do filho e do pai
         execl("/bin/date", "date", NULL); 
         perror("execl date"); 
@@ -42,7 +40,6 @@ int main() {
     // Processo pai
     printf("[PARENT] PID=%d criou filhos %d e %d\n", getpid(), retfork1, retfork2); // Imprime os PIDs dos filhos
     printf("[PARENT] Esperando filhos terminarem...\n");
-		fflush(stdout);
 
     // Espera pelo primeiro filho
     waitpid(retfork1, &status, 0); 
