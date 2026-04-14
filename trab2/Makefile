@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-BINS = vector-seq-threads server_unix client_unix
-=======
-BINS = vector-seq-threads time
->>>>>>> 1675d229a7636f97769ddd3e2f2fa36903c4797a
+
+BINS = vector-seq-threads time server_unix client_unix server_inet client_inet
 
 CC = gcc
 CFLAGS += -Wall
@@ -15,16 +12,20 @@ all: $(BINS)
 vector-seq-threads: vector-seq-threads.o
 vector-seq-threads.o: vector-seq-threads.c
 
-<<<<<<< HEAD
 server_unix: server_unix.o
 server_unix.o: server_unix.c
 
 client_unix: client_unix.o
 client_unix.o: client_unix.c
-=======
+
+server_inet: server_inet.o
+server_inet.o: server_inet.c
+
+client_inet: client_inet.o
+client_inet.o: client_inet.c
+
 time: time.o
 time.o: time.c
->>>>>>> 1675d229a7636f97769ddd3e2f2fa36903c4797a
 
 clean:
 	$(RM) $(BINS) *.o
