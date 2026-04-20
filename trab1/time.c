@@ -25,8 +25,8 @@ int main(void) {
 
   if (retfork == 0) {
     // Child
-    //char *args[] = {"./vector-seq-processes", "1000000000", "2", NULL};
-    char *args[] = {"./vector-seq", "1000000000", NULL};
+    char *args[] = {"./vector-seq-processes", "1000000000", "2", NULL};
+    //char *args[] = {"./vector-seq", "1000000000", NULL};
     execvp(args[0], args);
     fatal_system_error("Error executing");
     exit(EXIT_FAILURE);
