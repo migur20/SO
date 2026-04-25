@@ -1,1 +1,16 @@
+# Ignore everything by default
+*
+
+# Un-ignore all directories (so Git can traverse into your subdirectories)
+!*/
+
+# Un-ignore all source files
+!*.c
+!*.h
+
+# Un-ignore essential project files
+!.gitignore
+!README.md
+!Makefile
+
 .vscode
