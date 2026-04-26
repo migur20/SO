@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
     fatal_system_error("Servico invalido");
   }
 
-  uint32_t size;
+  int size;
   char buffer[BUF_SIZE];
 
   if (read(sockfd, &size, sizeof(size)) == -1)

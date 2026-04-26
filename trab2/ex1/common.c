@@ -1,4 +1,5 @@
 #include "common.h"
+#include <stdio.h>
 
 void fatal_system_error(const char *msg) {
   perror(msg);
@@ -68,7 +69,9 @@ void handle_client(int clientfd) {
   uint8_t service;
 
   read(clientfd, &service, sizeof(service));
-
+  printf("Received service: %s\n", service == CPUINFO   ? "CPUINFO"
+                                   : service == MEMINFO ? "MEMINFO"
+                                                        : "UNKNOWN");
   if (service != CPUINFO && service != MEMINFO) {
     uint8_t status = INVALID_SERVICE;
     write(clientfd, &status, sizeof(status));
@@ -86,6 +89,8 @@ int create_unix_socket() {
   unlink(SOCKET_PATH);
 
   sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (sockfd == -1)
+    fatal_system_error("criar socket(unix)");
 
   memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
@@ -98,20 +103,19 @@ int create_unix_socket() {
 }
 
 /* Cria o socket INET/TCP do servidor */
-int create_inet_socket()
-{
-    int sockfd;
-    struct sockaddr_in addr;
+int create_inet_socket() {
+  int sockfd;
+  struct sockaddr_in addr;
 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port = htons(SERVER_PORT);
+  memset(&addr, 0, sizeof(addr));
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  addr.sin_port = htons(SERVER_PORT);
 
-    if(bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-			fatal_system_error("bind (inet)");
+  if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+    fatal_system_error("bind (inet)");
 
-    return sockfd;
+  return sockfd;
 }

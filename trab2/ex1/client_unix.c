@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     fatal_system_error("Serviço inválido\n");
   }
 
-  uint32_t size;
+  int size;
   char buffer[BUF_SIZE];
 
   if (read(sockfd, &size, sizeof(size)) == -1)
@@ -55,7 +55,6 @@ int main(int argc, char *argv[]) {
     write(STDOUT_FILENO, buffer, n);
 
     size -= n;
-		printf("size:%d, n:%d\n", size, n);
   }
 
   close(sockfd);

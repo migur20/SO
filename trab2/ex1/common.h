@@ -33,7 +33,7 @@ void fatal_system_error(const char *msg);
 void send_block(int fd, char *buffer, uint32_t size);
 /* Executa o serviço pedido: 1 -> lscpu; 2 -> free -h */
 void run_service(int clientfd, uint8_t service);
-/* Recebe o pedido do cliente e valida o serviço pedido, e executa o servico */
+/* Recebe o pedido do cliente, valida o serviço pedido, e executa o servico */
 void handle_client(int clientfd);
 
 // sockets creation
