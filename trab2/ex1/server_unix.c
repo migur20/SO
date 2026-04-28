@@ -1,4 +1,5 @@
 #include "common.h"
+#include <stdio.h>
 
 int main() {
   int sock_unix;
@@ -20,6 +21,7 @@ int main() {
     close(clientfd);
   }
 
+	printf("Closing socket...\n");
   close(sock_unix);
   unlink(SOCKET_PATH);
 

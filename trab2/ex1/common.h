@@ -28,7 +28,6 @@
 void fatal_system_error(const char *msg);
 
 // server management
-
 /* Envia um bloco no formato: [4 bytes dimensão][dados] */
 void send_block(int fd, char *buffer, uint32_t size);
 /* Executa o serviço pedido: 1 -> lscpu; 2 -> free -h */
