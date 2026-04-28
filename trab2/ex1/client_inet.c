@@ -51,8 +51,6 @@ int main(int argc, char *argv[]) {
     if (size == 0)
       break;
 
-    printf("size:%d\n", size);
-
     while (size > 0) {
       uint32_t bytes_to_read = size < BUF_SIZE ? size : BUF_SIZE;
       int n = read(sockfd, buffer, bytes_to_read);
