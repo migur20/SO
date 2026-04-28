@@ -14,8 +14,8 @@
 #include <unistd.h>
 
 #define SOCKET_PATH "/tmp/socket_so_tp2"
-#define BUF_SIZE 1024
-#define SERVER_PORT 5500
+#define BUF_SIZE 1048
+#define SERVER_PORT 5000
 
 #define CPUINFO 1
 #define MEMINFO 2

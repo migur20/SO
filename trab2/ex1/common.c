@@ -1,4 +1,5 @@
 #include "common.h"
+#include <stdint.h>
 #include <stdio.h>
 
 void fatal_system_error(const char *msg) {
@@ -8,18 +9,29 @@ void fatal_system_error(const char *msg) {
 
 /* Envia um bloco no formato: [4 bytes dimensão][dados] */
 void send_block(int fd, char *buffer, uint32_t size) {
-  write(fd, &size, sizeof(size));
+	uint32_t net_size = htonl(size);
+  write(fd, &net_size, sizeof(net_size));
   write(fd, buffer, size);
+}
+
+void send_status(int clientfd, uint8_t status){
+	write(clientfd, &status, sizeof(status));
 }
 
 /* Executa o serviço pedido: 1 -> lscpu; 2 -> free -h */
 void run_service(int clientfd, uint8_t service) {
+	//signal(SIGPIPE, SIG_IGN);
   int p[2];
-  pipe(p);
+  if( pipe(p) == -1){
+		send_status(clientfd, EXEC_ERROR);
+		perror("pipe");
+		return;
+	}
 
   int pid = fork();
 
   if (pid == -1) {
+		send_status(clientfd, EXEC_ERROR);
     close(p[0]);
     close(p[1]);
     perror("forking");
@@ -33,6 +45,7 @@ void run_service(int clientfd, uint8_t service) {
     close(p[0]);
 
     dup2(p[1], STDOUT_FILENO);
+
     close(p[1]);
 
     if (service == CPUINFO) {
@@ -53,7 +66,7 @@ void run_service(int clientfd, uint8_t service) {
   char buffer[BUF_SIZE];
   int n;
 
-  while ((n = read(p[0], buffer, BUF_SIZE)) > 0) {
+  while ((n = read(p[0], buffer, BUF_SIZE-1)) > 0) {
     send_block(clientfd, buffer, n);
   }
 

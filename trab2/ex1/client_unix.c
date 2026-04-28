@@ -1,5 +1,5 @@
 #include "common.h"
-#include <stdio.h>
+#include <stdint.h>
 
 /* Função principal do cliente */
 int main(int argc, char *argv[]) {
@@ -40,21 +40,25 @@ int main(int argc, char *argv[]) {
     fatal_system_error("Serviço inválido\n");
   }
 
-  int size;
+  uint32_t size;
   char buffer[BUF_SIZE];
 
-  if (read(sockfd, &size, sizeof(size)) == -1)
-    fatal_system_error("read tamanho dos dados");
+  while (1) {
+    if (read(sockfd, &size, sizeof(size)) == -1)
+      fatal_system_error("read tamanho dos dados");
 
-  if (size <= 0)
-    fatal_system_error("size invalido");
+    if (size == 0)
+      break;
 
-  while (size > 0) {
-    uint32_t n = read(sockfd, buffer, BUF_SIZE);
-
-    write(STDOUT_FILENO, buffer, n);
-
-    size -= n;
+    uint32_t remaining = size;
+    while (remaining > 0) {
+      uint32_t to_read = remaining < BUF_SIZE ? remaining : BUF_SIZE;
+      int n = read(sockfd, buffer, to_read);
+      if (n <= 0)
+        fatal_system_error("read dados do bloco");
+      write(STDOUT_FILENO, buffer, n);
+      remaining -= n;
+    }
   }
 
   close(sockfd);

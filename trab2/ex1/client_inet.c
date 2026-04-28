@@ -1,4 +1,5 @@
 #include "common.h"
+#include <stdio.h>
 /* Cliente INET/TCP */
 int main(int argc, char *argv[]) {
   int sockfd;
@@ -30,31 +31,37 @@ int main(int argc, char *argv[]) {
   if (write(sockfd, &service, sizeof(service)) == -1)
     fatal_system_error("write codigo do servico");
 
-  /* Recebe o status */
+  /* Recebe o estado da resposta */
   if (read(sockfd, &status, sizeof(status)) == -1)
-    fatal_system_error("read status recebido");
-
+    fatal_system_error("read status do servidor");
   if (status == INVALID_SERVICE) {
     close(sockfd);
-    fatal_system_error("Servico invalido");
+    fatal_system_error("Serviço inválido\n");
   }
 
-  int size;
+  uint32_t size;
   char buffer[BUF_SIZE];
 
-  if (read(sockfd, &size, sizeof(size)) == -1)
-    fatal_system_error("read tamanho dos dados");
+  while (1) {
+    if (read(sockfd, &size, sizeof(size)) == -1)
+      fatal_system_error("read tamanho do bloco");
 
-  if (size <= 0)
-    fatal_system_error("size invalido");
+    if (size == 0)
+      break;
 
-  while (size > 0) {
-    int n = read(sockfd, buffer, BUF_SIZE);
+    printf("size:%d\n", size);
 
-    write(STDOUT_FILENO, buffer, n);
-
-    size -= n;
+    while (size > 0) {
+      uint32_t bytes_to_read = size < BUF_SIZE ? size : BUF_SIZE;
+      int n = read(sockfd, buffer, bytes_to_read);
+      if (n <= 0)
+        fatal_system_error("read dados do bloco");
+      write(STDOUT_FILENO, buffer, n);
+      size -= n;
+    }
   }
+
+  close(sockfd);
 
   return 0;
 }
