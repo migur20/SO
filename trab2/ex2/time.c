@@ -12,7 +12,11 @@ void fatal_system_error(const char *errorMsg) {
   exit(EXIT_FAILURE);
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
+	if(argc != 2){
+		printf("Uso: ./time <num-of-threads>\n");
+		exit(EXIT_FAILURE);
+	}
   struct timespec t_start;
   struct timespec t_end;
   // Get the start time
@@ -27,7 +31,7 @@ int main(void) {
     // Child
     //char *args[] = {"./vector-seq-processes", "1000000000", "2", NULL};
     //char *args[] = {"./vector-seq", "1000000000", NULL};
-    char *args[] = {"./vector-seq-threads", "1000000000", "2", NULL};
+    char *args[] = {"./vector-seq-threads", "1000000000", argv[1], NULL};
     execvp(args[0], args);
     fatal_system_error("Error executing");
     exit(EXIT_FAILURE);

@@ -5,8 +5,11 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+
+int verbose = 0;
 
 typedef struct {
   long sum;
@@ -18,7 +21,6 @@ typedef struct {
   int id;
   short *v; // pointer posicao inicial
   unsigned long dim;
-  ThreadReturn *ret;
 } ThreadArgs;
 
 void fatal_system_error(const char *errorMsg) {
@@ -49,8 +51,11 @@ int main(int argc, char *argv[]) {
   if (argc < 3) {
     printf("Not enough arguments\n");
     printf("Usage: ./vector-seq-threads <number_of_data> "
-           "<number_of_threads>\n");
+           "<number_of_threads> <optional:-v>\n");
     exit(EXIT_FAILURE);
+  }
+  if (argc > 3 && strcmp(argv[3], "-v") == 0) {
+    verbose = 1;
   }
 
   int nthreads = 1;
@@ -71,14 +76,15 @@ int main(int argc, char *argv[]) {
     fatal_system_error(buf);
   }
 
-  // vector_init_short(values, dim);
-  vector_random_init_short(values, dim);
-
-  printf("[MAIN]:Creating a vector of %lu (%.2f MB; %.2f GB) values\n", dim,
-         dim / 1e6, dim / 1e9);
+  printf("[MAIN]:Creating a vector of %lu (%.2f MB; %.2f GB) values and "
+         "processing with %d threads\n",
+         dim, dim / 1e6, dim / 1e9, nthreads);
   printf("[MAIN]:This will require approximately %.2f MB (%.2f GB) of "
          "memory\n",
          dim * sizeof(*values) / 1e6, dim * sizeof(*values) / 1e9);
+
+  // vector_init_short(values, dim);
+  vector_random_init_short(values, dim);
 
   int resto = dim % nthreads;
   dim = dim / nthreads;
@@ -98,8 +104,8 @@ int main(int argc, char *argv[]) {
   int smaller = values[0];
 
   for (int i = 0; i < nthreads; i++) {
-    pthread_join(th[i], NULL);
-    ThreadReturn *ret = args[i].ret;
+    ThreadReturn *ret;
+    pthread_join(th[i], (void **)&ret);
     sum += ret->sum;
     if (ret->smaller < smaller)
       smaller = ret->smaller;
@@ -167,9 +173,10 @@ void *thread_func(void *_args) {
     if (args->v[j] < ret->smaller)
       ret->smaller = args->v[j];
   }
-  printf("[THREAD[%d]]:smaller is %d\n", args->id, ret->smaller);
-  printf("[THREAD[%d]]:bigger  is %d\n", args->id, ret->bigger);
-  printf("[THREAD[%d]]:The sum is %ld\n", args->id, ret->sum);
-  args->ret = ret;
+  if (verbose == 1) {
+    printf("[THREAD[%d]]:smaller is %d\n", args->id, ret->smaller);
+    printf("[THREAD[%d]]:bigger  is %d\n", args->id, ret->bigger);
+    printf("[THREAD[%d]]:The sum is %ld\n", args->id, ret->sum);
+  }
   return ret;
 }
