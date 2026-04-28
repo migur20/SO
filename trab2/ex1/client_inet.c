@@ -46,6 +46,8 @@ int main(int argc, char *argv[]) {
     if (read(sockfd, &size, sizeof(size)) == -1)
       fatal_system_error("read tamanho do bloco");
 
+		size = htonl(size);
+
     if (size == 0)
       break;
 
