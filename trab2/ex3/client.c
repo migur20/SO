@@ -1,6 +1,9 @@
 #include "common.h"
 #include <limits.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 void random_init() {
@@ -65,20 +68,46 @@ int main(int argc, char *argv[]) {
   uint16_t *values = vector_create_uint16_t(dim);
   vector_random_init_uint16_t(values, dim);
 
+  // Envio dos dados e dimensao no formato : [dimensao 4 bytes][dados]
   write(sockfd, &dim, sizeof(dim));
   write(sockfd, values, dim * sizeof(values[0]));
 
+  // Recebe status do servidor
   uint8_t status;
   if (read(sockfd, &status, sizeof(status)) < 0)
     fatal_system_error("read status");
 
-  if (status == 1)
-    fatal_system_error("Pedido inválido: pedido não respeita o protocolo");
-  else if (status == 2)
-    fatal_system_error("Erro de processamento: falha interna do servidor "
-                       "ocorrida após a validação do pedido");
+  // Tratamento do status
+  if (status != 0){
+		// Receber mensagem de erro no formato : [dimensao 4 bytes][dados]
+		int bytes_read;
+		uint32_t size;
+		if((bytes_read = read(sockfd, &size, sizeof(size))))
+			fatal_system_error("read tamanho msg erro");
+		char msg[size];
+		if((bytes_read = read(sockfd, msg, size)))
+			fatal_system_error("read msg erro");
+		write(STDOUT_FILENO, msg, bytes_read);
+		// TODO : provavelmemte melhor voltar a tentar caso o erro seja no servidor
+		exit(EXIT_FAILURE);
+	}
 
-	//Pedido aceite e procesado corretamente
+  // Pedido aceite e procesado corretamente
+  //[2 bytes min][2 bytes max][8 bytes soma]
+  uint16_t min, max;
+  uint64_t sum;
+  if (read(sockfd, &min, sizeof(min)) == -1)
+    fatal_system_error("read min");
+	printf("min: %d\n", min);
+
+  if (read(sockfd, &max, sizeof(max)) == -1)
+    fatal_system_error("read max");
+	printf("max: %d\n", max);
+
+  if (read(sockfd, &sum, sizeof(sum)) == -1)
+    fatal_system_error("read sum");
+	printf("sum: %ld\n", sum);
 
   close(sockfd);
+	return EXIT_SUCCESS;
 }
