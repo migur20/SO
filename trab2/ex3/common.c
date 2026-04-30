@@ -1,65 +1,50 @@
 #include "common.h"
-#include <stdint.h>
+#include <netinet/in.h>
+#include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 void fatal_system_error(const char *msg) {
   perror(msg);
   exit(EXIT_FAILURE);
 }
 
-/* Envia um bloco no formato: [4 bytes dimensão][dados] */
-void send_block(int fd, char *buffer, uint32_t size) {
-	uint32_t net_size = htonl(size);
-  write(fd, &net_size, sizeof(net_size));
-  write(fd, buffer, size);
-}
-
-void send_status(int clientfd, uint8_t status){
-	write(clientfd, &status, sizeof(status));
-}
-
-void run_service(int clientfd, uint8_t service) {
-
-
-
-}
-
-/* Recebe o pedido do cliente e valida o serviço pedido, e executa o servico */
-void handle_client(int clientfd) {
-  uint8_t service;
-
-  read(clientfd, &service, sizeof(service));
-  printf("Received service: %s\n", service == CPUINFO   ? "CPUINFO"
-                                   : service == MEMINFO ? "MEMINFO"
-                                                        : "UNKNOWN");
-  if (service != CPUINFO && service != MEMINFO) {
-    uint8_t status = INVALID_SERVICE;
-    write(clientfd, &status, sizeof(status));
-    return;
+// size em numero de elementos
+int receive_data(int fd, void *buffer, size_t size) {
+  size_t bytes_read = 0;
+  while (bytes_read < size) {
+    int n = read(fd, buffer + bytes_read, size - bytes_read);
+    if (n <= 0)
+      return EXIT_FAILURE;
+    bytes_read += n;
   }
-
-  run_service(clientfd, service);
+  return EXIT_SUCCESS;
 }
 
-/* Cria o socket UNIX do servidor e faz o bind ao pathname definido */
-int create_unix_socket() {
-  int sockfd;
-  struct sockaddr_un addr;
+int send_data(int fd, void *buffer, size_t size) {
+  size_t bytes_written = 0;
+  while (bytes_written < size) {
+    int n = write(fd, buffer + bytes_written, size - bytes_written);
+    if (n <= 0)
+      return EXIT_FAILURE;
+    bytes_written += n;
+  }
+  return EXIT_SUCCESS;
+}
 
-  unlink(SOCKET_PATH);
+/* Envia um bloco no formato: [4 bytes dimensão][dados] */
+int send_block(int fd, void *buffer, uint32_t size) {
+  if (send_data(fd, &size, sizeof(size)) == EXIT_FAILURE)
+    return EXIT_FAILURE;
+  return send_data(fd, buffer, size);
+}
 
-  sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (sockfd == -1)
-    fatal_system_error("criar socket(unix)");
-
-  memset(&addr, 0, sizeof(addr));
-  addr.sun_family = AF_UNIX;
-  strcpy(addr.sun_path, SOCKET_PATH);
-
-  if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-    fatal_system_error("bind(unix)");
-
-  return sockfd;
+int send_status(int clientfd, uint8_t status, char *msg) {
+  if (send_data(clientfd, &status, sizeof(status)) == EXIT_FAILURE)
+    return EXIT_FAILURE;
+  if (status != OK)
+    return send_block(clientfd, msg, strlen(msg));
+	return EXIT_SUCCESS;
 }
 
 /* Cria o socket INET/TCP do servidor */
@@ -74,8 +59,10 @@ int create_inet_socket() {
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
   addr.sin_port = htons(SERVER_PORT);
 
+  int opt = 1;
+  setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
   if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
-    fatal_system_error("bind (inet)");
+    fatal_system_error("bind");
 
   return sockfd;
 }
