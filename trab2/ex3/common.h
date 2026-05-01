@@ -12,10 +12,10 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define SOCKET_PATH "/tmp/socket_so_tp2"
 #define BUF_SIZE 1048
-#define SERVER_PORT 5000
 
 #define OK (uint8_t)0
 #define INVALID_SERVICE (uint8_t)1
@@ -41,8 +41,14 @@ int send_status(int clientfd, uint8_t status, char *msg);
 
 // sockets creation
 /* Cria o socket INET/TCP do servidor */
-int create_inet_socket();
-/* Cria o socket UNIX do servidor e faz o bind ao pathname definido */
-int create_unix_socket();
+int create_inet_socket(int port);
+
+typedef struct {
+  uint64_t sum;
+  uint16_t bigger;
+  uint16_t smaller;
+} ThreadReturn;
+
+ThreadReturn values_processing(uint16_t *values, uint32_t dim, int nthreads);
 
 #endif

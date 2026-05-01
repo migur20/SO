@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
 void random_init() {
   // Initialize the random number generator with the current time as the seed,
   // which ensures that we get a different sequence of random numbers each
@@ -67,12 +66,21 @@ int main(int argc, char *argv[]) {
     fatal_system_error("connect");
 
   random_init();
-  uint16_t *values = vector_create_uint16_t(dim);
+	
+	uint16_t *values;
+
+  printf("Creating a vector of %u (%.2f MB; %.2f GB) values\n", dim,
+         dim / 1e6, dim / 1e9);
+  printf("This will require approximately %.2f MB (%.2f GB) of "
+         "memory\n",
+         dim * sizeof(*values) / 1e6, dim * sizeof(*values) / 1e9);
+
+  values = vector_create_uint16_t(dim);
   // vector_random_init_uint16_t(values, dim);
   vector_init_uint16_t(values, dim);
 
   // Envio dos dados e dimensao no formato : [dimensao em bytes(4 bytes)][dados]
-  if (send_block(sockfd, values, dim*sizeof(*values)) == EXIT_FAILURE)
+  if (send_block(sockfd, values, dim * sizeof(*values)) == EXIT_FAILURE)
     fatal_system_error("write values e dim");
 
   // Recebe status do servidor
@@ -91,23 +99,23 @@ int main(int argc, char *argv[]) {
     char msg[msg_dim + 1];
     if (receive_data(sockfd, msg, msg_dim) == EXIT_FAILURE)
       fatal_system_error("read mensagem de erro");
-		msg[msg_dim] = '\0';
-		printf("%s\n", msg);
+    msg[msg_dim] = '\0';
+    printf("%s\n", msg);
     // TODO : provavelmemte melhor voltar a tentar caso o erro seja no servidor
     exit(EXIT_FAILURE);
   }
 
   // Pedido aceite e procesado corretamente
-  //[2 bytes min][2 bytes max][8 bytes soma]
-  uint16_t min, max;
+  //[2 bytes smaller][2 bytes bigger][8 bytes soma]
+  uint16_t smaller, bigger;
   uint64_t sum;
-  if (receive_data(sockfd, &min, sizeof(min)) == EXIT_FAILURE)
-    fatal_system_error("read min");
-  printf("min: %d\n", min);
+  if (receive_data(sockfd, &smaller, sizeof(smaller)) == EXIT_FAILURE)
+    fatal_system_error("read smaller");
+  printf("smaller: %d\n", smaller);
 
-  if (receive_data(sockfd, &max, sizeof(max)))
-    fatal_system_error("read max");
-  printf("max: %d\n", max);
+  if (receive_data(sockfd, &bigger, sizeof(bigger)))
+    fatal_system_error("read bigger");
+  printf("bigger: %d\n", bigger);
 
   if (receive_data(sockfd, &sum, sizeof(sum)))
     fatal_system_error("read sum");

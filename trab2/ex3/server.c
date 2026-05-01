@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#define VALUES_PER_THREAD 1000
+
 typedef struct {
   int clientfd;
 } ThreadArgs;
@@ -27,34 +29,34 @@ int handle_client(int clientfd) {
     return EXIT_FAILURE;
   }
 
-  if (dim / sizeof(*values) < 50) {
-    for (uint32_t i = 0; i < dim / sizeof(*values); i++) {
-      printf("%d, ", values[i]);
-    }
-    putchar('\n');
+  // if (dim / sizeof(*values) < 50) {
+  //   for (uint32_t i = 0; i < dim / sizeof(*values); i++) {
+  //     printf("%d, ", values[i]);
+  //   }
+  //   putchar('\n');
+  // }
+
+  // Tenta enviar o status ate conseguir
+  while (send_status(clientfd, OK, NULL) == EXIT_FAILURE) {
+    perror("write status (resending...)");
   }
 
-	// Tenta enviar o status ate conseguir
-  while(send_status(clientfd, OK, NULL) == EXIT_FAILURE){
-		perror("write status (resending...)");
-	}
+  // Processar os values ...
+  int nthreads = (dim + VALUES_PER_THREAD - 1) / VALUES_PER_THREAD;
+  if (nthreads < 2)
+    nthreads = 2;
 
-	// Processar os values ...
-	// TODO
+  ThreadReturn ret = values_processing(values, dim/sizeof(*values), nthreads);
 
-
-  uint16_t min = 13, max = 31;
-  uint64_t sum = 45;
-
-  if (send_data(clientfd, &min, sizeof(min)) == EXIT_FAILURE) {
-    perror("write min");
+  if (send_data(clientfd, &ret.smaller, sizeof(ret.smaller)) == EXIT_FAILURE) {
+    perror("write smaller");
     return EXIT_FAILURE;
   }
-  if (send_data(clientfd, &max, sizeof(max)) == EXIT_FAILURE) {
-    perror("write max");
+  if (send_data(clientfd, &ret.bigger, sizeof(ret.bigger)) == EXIT_FAILURE) {
+    perror("write bigger");
     return EXIT_FAILURE;
   }
-  if (send_data(clientfd, &sum, sizeof(sum)) == EXIT_FAILURE) {
+  if (send_data(clientfd, &ret.sum, sizeof(ret.sum)) == EXIT_FAILURE) {
     perror("write sum");
     return EXIT_FAILURE;
   }
@@ -71,11 +73,17 @@ void *server_func(void *_args) {
   return NULL;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+	if(argc != 2){
+		fprintf(stderr, "Uso: %s <port>\n", argv[0]);
+		exit(EXIT_FAILURE);
+	}
+	int port = atoi(argv[1]);
+
   int sock_inet;
-  sock_inet = create_inet_socket();
+  sock_inet = create_inet_socket(port);
   listen(sock_inet, 5);
-  printf("Listening on port %d\n", SERVER_PORT);
+  printf("Listening on port %d\n", port);
 
   int clientfd;
   while (1) {
