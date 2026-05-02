@@ -1,4 +1,4 @@
-BINS: server client
+BINS: server client client_stress
 
 CFLAGS+=-Wall
 CFLAGS+=-Wextra
@@ -14,6 +14,9 @@ server.o: server.c
 
 client: client.o common.o
 client.o: client.c
+
+client_stress: client_stress.o common.o
+client_stress.o: client_stress.c
 
 clean:
 	$(RM) *.o $(BINS)

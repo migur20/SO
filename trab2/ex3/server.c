@@ -88,12 +88,20 @@ int main(int argc, char *argv[]) {
   int clientfd;
   while (1) {
     clientfd = accept(sock_inet, NULL, NULL);
+		if(clientfd == -1){
+			perror("accept");
+			continue;
+		}
     printf("Received client on fd:%d\n", clientfd);
     pthread_t thread;
-    pthread_create(&thread, NULL, server_func,
-                   (void *)&(ThreadArgs){
-                       .clientfd = clientfd,
-                   });
+		ThreadArgs *args = malloc(sizeof(*args));
+		if(!args){
+			perror("malloc");
+			close(clientfd);
+			continue;
+		}
+		args->clientfd = clientfd;
+    pthread_create(&thread, NULL, server_func, args);
     pthread_detach(thread);
   }
 

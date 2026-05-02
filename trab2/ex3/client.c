@@ -10,10 +10,8 @@ void random_init() {
   // which ensures that we get a different sequence of random numbers each
   // time we run the program.
   // srandom(time(NULL));
-
   // Set a fixed seed for reproducibility, i.e. will generate the same sequence
-  // of random numbers every time the program is run, which is useful for
-  // debugging and testing
+  // of random numbers every time the program is run, which is useful for debugging and testing
   srandom(2026);
 }
 
@@ -100,8 +98,7 @@ int main(int argc, char *argv[]) {
     if (receive_data(sockfd, msg, msg_dim) == EXIT_FAILURE)
       fatal_system_error("read mensagem de erro");
     msg[msg_dim] = '\0';
-    printf("%s\n", msg);
-    // TODO : provavelmemte melhor voltar a tentar caso o erro seja no servidor
+    fprintf(stderr, "%s\n", msg);
     exit(EXIT_FAILURE);
   }
 

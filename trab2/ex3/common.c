@@ -6,7 +6,6 @@ void fatal_system_error(const char *msg) {
   exit(EXIT_FAILURE);
 }
 
-// size em numero de elementos
 int receive_data(int fd, void *buffer, size_t size) {
   size_t bytes_read = 0;
   while (bytes_read < size) {
@@ -117,9 +116,9 @@ void *thread_func(void *_args) {
     free(ret);
   }
 
-  printf("The smaller is %d\n", smaller);
-  printf("The bigger  is %d\n", bigger);
-  printf("The sum is %ld\n", sum);
+  // printf("The smaller is %d\n", smaller);
+  // printf("The bigger  is %d\n", bigger);
+  // printf("The sum is %ld\n", sum);
 
   free(values);
 	return (ThreadReturn){
