@@ -1,7 +1,19 @@
 #include "threadpool.h"
+
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+void fatal_system_error(const char *msg) {
+  perror(msg);
+  exit(EXIT_FAILURE);
+}
+
+void fatal_pthread_error(int retval, const char *msg) {
+  errno = retval;
+  perror(msg);
+  exit(EXIT_FAILURE);
+}
 void check_pthread_error(int retval, const char *msg)
 {
   if (retval < 0) {
@@ -99,7 +111,40 @@ int threadpool_submit(threadpool_t *tp, function_t func, void *args)
   return 0;
 }
 
-void threadpool_destroy(threadpool_t *tp)
+void threadpool_destroy(threadpool_t *tp) 
 {
-  // to be implemented
+
+  int retval = pthread_mutex_lock(&tp->mutex);
+
+  check_pthread_error(retval,
+                      "threadpool_destroy mutex lock");
+
+  tp->shuttingDown = true;
+
+  retval = pthread_mutex_unlock(&tp->mutex);
+
+  check_pthread_error(retval,
+                      "threadpool_destroy mutex unlock");
+
+  for (int i = 0; i < tp->nWorkersThreads; ++i) {
+
+    sharedBuffer_Put(&tp->workQueue, NULL);
+  }
+
+  for (int i = 0; i < tp->nWorkersThreads; ++i) {
+
+    retval = pthread_join(tp->workersThreads[i], NULL);
+
+    check_pthread_error(retval,
+                        "pthread_join worker thread");
+  }
+
+  free(tp->workersThreads);
+
+  sharedBuffer_destroy(&tp->workQueue);
+
+  retval = pthread_mutex_destroy(&tp->mutex);
+
+  check_pthread_error(retval,
+                      "pthread_mutex_destroy");
 }
