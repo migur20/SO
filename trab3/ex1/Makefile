@@ -7,8 +7,9 @@ CFLAGS += -g
 
 all: $(BINS)
 
-countdown: countdown.o
-countdown.o: countdown.c
+countdown: main.o countdown.o
+main.o: main.c countdown.h
+countdown.o: countdown.c countdown.h
 
 clean:
 	$(RM) *.o $(BINS)
