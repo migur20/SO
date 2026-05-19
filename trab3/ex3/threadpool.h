@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <pthread.h>
 
+#define END_WORK_ITEM (work_item_t*)NULL
+
 /*
  * Function pointer type for work item operations.
 
@@ -34,5 +36,6 @@ int threadpool_submit(threadpool_t *tp, function_t oper, void *args);
 
 void threadpool_destroy(threadpool_t *tp);
 
+void check_pthread_error(int retval, const char *msg);
 
 #endif

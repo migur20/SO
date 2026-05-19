@@ -64,7 +64,7 @@ void *threadpool_work_thread(void *args)
   threadpool_t *tp = (threadpool_t *)args;
   while (true) {
     work_item_t *wi = sharedBuffer_Get(&tp->workQueue);
-    if (wi == NULL)
+    if (wi == END_WORK_ITEM)
       break;
     wi->operation(wi->args);
     workitem_destroy(wi);
@@ -121,7 +121,7 @@ int threadpool_submit(threadpool_t *tp, function_t func, void *args)
   check_pthread_error(retval, "threadpool_submit: mutex unlock");
 
   work_item_t *wi = workitem_new(func, args);
-  if (wi == NULL)
+  if (wi == END_WORK_ITEM)
     return -1;
 
   sharedBuffer_Put(&tp->workQueue, wi);
@@ -140,7 +140,7 @@ void threadpool_destroy(threadpool_t *tp)
   check_pthread_error(retval, "threadpool_destroy: mutex unlock");
 
   for (int i = 0; i < tp->nWorkersThreads; ++i) {
-    sharedBuffer_Put(&tp->workQueue, NULL);
+    sharedBuffer_Put(&tp->workQueue, END_WORK_ITEM);
   }
 
   for (int i = 0; i < tp->nWorkersThreads; ++i) {
