@@ -44,12 +44,4 @@ int send_status(int clientfd, uint8_t status, char *msg);
 int create_inet_socket(int port);
 int create_unix_socket();
 
-typedef struct {
-  uint64_t sum;
-  uint16_t bigger;
-  uint16_t smaller;
-} ThreadReturn;
-
-ThreadReturn values_processing(uint16_t *values, uint32_t dim, int nthreads);
-
 #endif
