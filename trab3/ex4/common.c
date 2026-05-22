@@ -47,11 +47,10 @@ int send_status(int clientfd, uint8_t status, char *msg) {
 /* Cria o socket INET/TCP do servidor */
 int create_inet_socket(int port) {
   int sockfd;
-  struct sockaddr_in addr;
+  struct sockaddr_in addr = {0};
 
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-  memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
   addr.sin_port = htons(port);
@@ -68,7 +67,7 @@ int create_inet_socket(int port) {
 /* Cria o socket UNIX do servidor e faz o bind ao pathname definido */
 int create_unix_socket() {
   int sockfd;
-  struct sockaddr_un addr;
+  struct sockaddr_un addr = {0};
 
   unlink(SOCKET_PATH);
 
@@ -76,7 +75,6 @@ int create_unix_socket() {
   if (sockfd == -1)
     fatal_system_error("criar socket(unix)");
 
-  memset(&addr, 0, sizeof(addr));
   addr.sun_family = AF_UNIX;
   strcpy(addr.sun_path, SOCKET_PATH);
 
