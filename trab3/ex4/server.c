@@ -1,6 +1,5 @@
 #include "common.h"
 #include "threadpool.h"
-#include <assert.h>
 #include <bits/pthreadtypes.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -8,7 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
+
+#define CON_TIMEOUT 10
 
 #define INET 0
 #define UNIX 1
@@ -34,8 +36,10 @@ typedef struct {
 typedef struct {
   int n_con[2];
   int total_dim;
-  pthread_mutex_t mutex;
   bool shutdown;
+  pthread_mutex_t mutex;
+  pthread_cond_t cond;
+  bool stats_changed;
 } ServerStats;
 
 typedef struct {
@@ -59,14 +63,34 @@ void *thread_func(void *_args)
       .bigger = args.v[0],
       .smaller = args.v[0],
   };
-  for (unsigned long j = 0; j < args.dim; ++j) {
-    ret->sum += args.v[j];
-    if (args.v[j] > ret->bigger)
-      ret->bigger = args.v[j];
-    if (args.v[j] < ret->smaller)
-      ret->smaller = args.v[j];
+
+  for (size_t i = 0; i < args.dim; ++i) {
+    ret->sum += args.v[i];
+    if (args.v[i] > ret->bigger)
+      ret->bigger = args.v[i];
+    if (args.v[i] < ret->smaller)
+      ret->smaller = args.v[i];
   }
+
   return ret;
+}
+
+void stats_add_dim(ServerStats *stats, int dim)
+{
+  pthread_mutex_lock(&stats->mutex);
+  stats->stats_changed = true;
+  stats->total_dim += dim;
+  pthread_cond_broadcast(&stats->cond);
+  pthread_mutex_unlock(&stats->mutex);
+}
+
+void stats_add_con(ServerStats *stats, int con_type)
+{
+  pthread_mutex_lock(&stats->mutex);
+  stats->stats_changed = true;
+  stats->n_con[con_type]++;
+  pthread_cond_broadcast(&stats->cond);
+  pthread_mutex_unlock(&stats->mutex);
 }
 
 ThreadReturn values_processing(uint16_t *values, uint32_t dim, int nthreads)
@@ -75,12 +99,11 @@ ThreadReturn values_processing(uint16_t *values, uint32_t dim, int nthreads)
   dim = dim / nthreads;
 
   pthread_t th[nthreads];
-  // printf("dim per th:%d, nthreads: %d\n", dim, nthreads);
+  ThreadArgs args[nthreads];
   for (int i = 0; i < nthreads; i++) {
-    ThreadArgs args = {0};
-    args.v = values + (i * dim);
-    args.dim = (i == nthreads - 1) ? dim + resto : dim;
-    if (pthread_create(&th[i], NULL, thread_func, &args) != 0)
+    args[i].v = values + (i * dim);
+    args[i].dim = (i == nthreads - 1) ? dim + resto : dim;
+    if (pthread_create(&th[i], NULL, thread_func, &args[i]) != 0)
       fatal_system_error("criar thread processamento");
   }
 
@@ -108,7 +131,7 @@ void *handle_client(void *_args)
   int clientfd = ((ClientHandlerArgs *)_args)->clientfd;
   ServerStats *stats = ((ClientHandlerArgs *)_args)->stats;
 
-  uint32_t dim;
+  uint32_t dim = 0; // EM BYTES!!!!!!!!!!!!!!!!!1
   if (receive_data(clientfd, &dim, sizeof(dim)) == EXIT_FAILURE) {
     perror("read values");
     if (send_status(clientfd, EXEC_ERROR, "erro ao ler dim") == EXIT_FAILURE)
@@ -116,25 +139,35 @@ void *handle_client(void *_args)
     return NULL;
   }
 
-  pthread_mutex_lock(&stats->mutex);
-  stats->total_dim += dim;
-  pthread_mutex_unlock(&stats->mutex);
+  uint16_t *values = calloc(1, dim);
 
-  uint16_t *values;
-  values = malloc(dim);
-  if (receive_data(clientfd, values, dim) == EXIT_FAILURE) {
+  stats_add_dim(stats, dim/sizeof(*values));
+
+  int timeout = 0;
+  while (receive_data(clientfd, values, dim) == EXIT_FAILURE) {
     perror("read values");
     if (send_status(clientfd, EXEC_ERROR, "erro ao ler values") == EXIT_FAILURE)
       perror("write status");
-    return NULL;
+    if (timeout == CON_TIMEOUT) {
+      fprintf(stderr, "Connection timeout!!!\n");
+      close(clientfd);
+      return NULL;
+    }
+    fprintf(stderr, "retrying...\n");
+    timeout++;
   }
 
-  for (size_t i = 0; i < dim; i++)
-    printf("values[%zu]: %d\n", i, values[i]);
-
   // Tenta enviar o status ate conseguir
+  timeout = 0;
   while (send_status(clientfd, OK, NULL) == EXIT_FAILURE) {
-    perror("write status (resending...)");
+    perror("write status");
+    if (timeout == CON_TIMEOUT) {
+      fprintf(stderr, "Connection timeout!!!\n");
+      close(clientfd);
+      return NULL;
+    }
+    fprintf(stderr, "retrying...\n");
+    timeout++;
   }
 
   // Processar os values
@@ -157,29 +190,56 @@ void *handle_client(void *_args)
     perror("write sum");
     return NULL;
   }
+
+  close(clientfd);
   return NULL;
 }
 
-void *stats_func(void *_args)
+void print_stats(ServerStats *stats)
 {
-  ServerStats *args = _args;
-  printf("stats stats_func: %p\n", args);
-  bool isRunning = true;
-  while (isRunning) {
+  printf("[LOG]Unix Connections: %d\n", stats->n_con[UNIX]);
+  printf("[LOG]Inet Connections: %d\n", stats->n_con[INET]);
+  printf("[LOG]Average vector dimension: %d\n",
+         (stats->total_dim == 0)
+             ? 0
+             : (stats->total_dim) / (stats->n_con[INET] + stats->n_con[UNIX]));
+}
+
+void *stats_func_periodic(void *_args)
+{
+  ServerStats *stats = _args;
+  while (1) {
     sleep(PRINT_PERIOD);
-    pthread_mutex_lock(&args->mutex);
-    int n_con_inet = args->n_con[INET];
-    int n_con_unix = args->n_con[UNIX];
-    printf("Unix Connections: %d\n", args->n_con[UNIX]);
-    printf("Inet Connections: %d\n", args->n_con[INET]);
-    printf("total: %d, Average vector dimension: %.2f\n", args->total_dim,
-           (args->total_dim == 0)
-               ? 0.0
-               : ((float)args->total_dim) / (n_con_inet + n_con_unix));
-    if (args->shutdown)
-      isRunning = false;
-    pthread_mutex_unlock(&args->mutex);
+    pthread_mutex_lock(&stats->mutex);
+    if (stats->shutdown) {
+      pthread_mutex_unlock(&stats->mutex);
+      return NULL;
+    }
+    pthread_mutex_unlock(&stats->mutex);
+		print_stats(stats);
   }
+  perror("Unreachable");
+  return NULL;
+}
+
+void *stats_func_wait(void *_args)
+{
+  ServerStats *stats = _args;
+  while (1) {
+    // sleep(PRINT_PERIOD);
+    pthread_mutex_lock(&stats->mutex);
+    while (!stats->stats_changed && !stats->shutdown)
+      pthread_cond_wait(&stats->cond, &stats->mutex);
+    if (stats->shutdown) {
+      pthread_mutex_unlock(&stats->mutex);
+      return NULL;
+    }
+    stats->stats_changed = false;
+    pthread_mutex_unlock(&stats->mutex);
+
+		print_stats(stats);
+  }
+  perror("Unreachable");
   return NULL;
 }
 
@@ -187,23 +247,22 @@ void *server_func(void *_args)
 {
   ServerThreadArgs args = *(ServerThreadArgs *)_args;
   ServerStats *stats = args.stats;
-  // printf("args: %p, %s, %d, %d\n", args.stats, args.con_name, args.con_type,
-  //        args.socket_fd);
   threadpool_t tp = {0};
   threadpool_init(&tp, QEUEU_SIZE, NTHREADS);
 
   listen(args.socket_fd, QEUEU_SIZE);
 
-  bool isRunning = true;
-  while (isRunning) {
+  while (true) {
     int client_fd = accept(args.socket_fd, NULL, NULL);
     if (client_fd == -1) {
-      fprintf(stderr, "%s accept\n", args.con_name);
-      perror("accept");
-      printf("socketfd: %d\n", args.socket_fd);
-      return NULL;
+      if (stats->shutdown) {
+        break;
+      }
+      fprintf(stderr, "%s accept:", args.con_name);
+      perror("");
       continue;
     }
+
     printf("[%s]Received client on fd:%d\n", args.con_name, client_fd);
     // client_fd e copiado para uma variavel local em handle_client
     ClientHandlerArgs ch_args = {
@@ -212,9 +271,7 @@ void *server_func(void *_args)
     };
     threadpool_submit(&tp, handle_client, &ch_args);
 
-    pthread_mutex_lock(&stats->mutex);
-    stats->n_con[args.con_type]++;
-    pthread_mutex_unlock(&stats->mutex);
+    stats_add_con(stats, args.con_type);
   }
   threadpool_destroy(&tp);
   return NULL;
@@ -236,10 +293,9 @@ int main(int argc, char *argv[])
       .total_dim = 0,
   };
   pthread_mutex_init(&stats.mutex, NULL);
+  pthread_cond_init(&stats.cond, NULL);
 
-  printf("stats main: %p\n", &stats);
-
-  pthread_create(&th_stats, NULL, stats_func, &stats);
+  pthread_create(&th_stats, NULL, stats_func_periodic, &stats);
 
   ServerThreadArgs inet_args = {
       .stats = &stats,
@@ -262,21 +318,29 @@ int main(int argc, char *argv[])
     if (in == 'q') {
       pthread_mutex_lock(&stats.mutex);
       stats.shutdown = true;
+      pthread_cond_broadcast(&stats.cond);
       pthread_mutex_unlock(&stats.mutex);
       break;
     }
   }
 
+  printf("Waiting for inet thread to end...\n");
   shutdown(inet_args.socket_fd, SHUT_RDWR);
   close(inet_args.socket_fd);
   pthread_join(th_inet, NULL);
+  printf("Inet thread finished\n");
 
+  printf("Waiting for unix thread to end...\n");
   shutdown(unix_args.socket_fd, SHUT_RDWR);
   close(unix_args.socket_fd);
   pthread_join(th_unix, NULL);
+  printf("Unix thread finished\n");
 
+  printf("Waiting for stats thread to end...\n");
   pthread_join(th_stats, NULL);
+  printf("Stats thread finished\n");
 
   pthread_mutex_destroy(&stats.mutex);
+	pthread_cond_destroy(&stats.cond);
   return EXIT_SUCCESS;
 }

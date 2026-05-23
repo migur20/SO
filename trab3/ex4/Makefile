@@ -1,4 +1,4 @@
-BINS= server
+BINS= server client
 
 CFLAGS += -Wall
 CFLAGS += -Wextra
